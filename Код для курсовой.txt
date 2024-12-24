@@ -1,0 +1,368 @@
+main.cpp
+
+
+#include "GameH.cpp"
+
+int main() {
+    Game game; // Создание игры
+    game.start(); // Запуск игры
+    return 0;
+}
+
+
+
+
+
+
+
+GameH.cpp
+
+
+#include "PlayerH.cpp"
+#include "EnemyH.cpp"
+#include <vector>
+#include <memory>
+using namespace std;
+
+// Класс Game, управляющий игрой
+class Game {
+private:
+    Player player;  // Игрок
+    vector<shared_ptr<Enemy>> enemies; // Список врагов
+    int currentEnemyIndex;   // Текущий враг
+
+public:
+    Game();    // Конструктор игры
+    void start();     // Запуск игры
+    void showStatus() const;   // Показать состояние
+    void playerTurn(); // Ход игрока
+    void enemyTurn(); // Ход врага
+    bool isGameOver() const;  // Проверка, завершена ли игра
+    void endGame();  // Завершение игры
+};
+
+
+
+
+
+
+Player.cpp
+
+
+#include "PlayerH.cpp"
+#include "EnemyH.cpp"
+#include <iostream>
+using namespace std;
+
+// Конструктор игрока
+Player::Player(const string& name)
+    : name(name), health(100), energy(50), weapon("Лазерный бластер", 15) {}
+
+// Атака врага
+void Player::attack(Enemy& enemy) {
+    if (energy < 10) {
+        cout << "Недостаточно энергии для атаки!" << endl;
+        return;
+    }
+    energy -= 10; // Уменьшение энергии
+    int damage = weapon.getPower();
+    cout << name << " атакует и наносит" << damage << " урона!" << endl;
+    enemy.takeDamage(damage); // Нанесение урона врагу
+}
+
+// Защита
+void Player::defend() {
+    energy += 10;  // Увеличение энергии
+    cout << name << " зарядил 10 энергии!" << endl;
+}
+
+// Ремонт
+void Player::heal() {
+    if (energy < 15) {
+        cout << "Недостаточно энегрии для ремонта!" << endl;
+        return;
+    }
+    energy -= 15; // Расход энергии
+    health += 20; // Восстановление здоровья
+    if (health > 100) health = 100;
+    cout << name << " Ремонтируется и востанавливает 20 очков прочности!" << endl;
+}
+
+// Улучшение оружия
+void Player::upgradeWeapon() {
+    if (energy < 20) {
+        cout << "Недостаточно энергии для улучшения оружия!" << endl;
+        return;
+    }
+    energy -= 20; // Расход энергии
+    weapon.upgrade();
+    cout << name << " улучшает оружие!" << endl;
+}
+
+// Получение урона
+void Player::takeDamage(int damage) {
+    health -= damage;
+    if (health < 0) health = 0;
+    cout << name << " получает " << damage << " урона!" << endl;
+    cout << endl;
+}
+
+// Проверка, жив ли игрок
+bool Player::isAlive() const { return health > 0; }
+
+// Вывод текущего состояния игрока
+void Player::showStatus() const {
+    cout << "Игрок: " << name << " | Здоровье: " << health << " | Энергия: " << energy << endl;
+    weapon.showInfo(); // Вывод информации об оружии
+}
+
+
+
+
+
+
+
+
+Enemy.cpp
+
+
+#include "EnemyH.cpp"
+#include "PlayerH.cpp"
+#include <iostream>
+using namespace std;
+
+// Конструктор врага
+Enemy::Enemy(const string& name, int health, int damage)
+    : name(name), health(health), damage(damage) {}
+
+// Атака игрока
+void Enemy::attack(Player& player) {
+    cout << name << " атакует и наносит " << damage << " урона!" << endl;
+    player.takeDamage(damage); // Нанесение урона игроку
+}
+
+// Получение урона
+void Enemy::takeDamage(int damage) {
+    health -= damage;
+    if (health < 0) health = 0;
+    cout << name << " получает " << damage << " урона!" << endl;
+}
+
+// Проверка, жив ли враг
+bool Enemy::isAlive() const { return health > 0; }
+
+// Вывод текущего состояния врага
+void Enemy::showStatus() const {
+    cout << "Враг: " << name << " | Здоровье: " << health << " | Мощность: " << damage << endl;
+}
+
+
+
+
+
+
+
+
+WeaponH.cpp
+
+
+#include <string>
+#include <iostream>
+using namespace std;
+
+// Шаблонный класс Weapon, представляющий оружие игрока
+template <typename T>
+class Weapon {
+private:
+    string name; // Имя оружия
+    T power; // Базовая мощность оружия
+    int level; // Текущий уровень оружия
+
+public:
+    // Конструктор с параметрами по умолчанию
+    Weapon(const string& name = "Бластер", T power = 10, int level = 1)
+        : name(name), power(power), level(level) {}
+
+    // Получение текущей мощности оружия
+    T getPower() const { return power * level; }
+
+    // Улучшение оружия: увеличивает уровень и мощность
+    void upgrade() {
+        ++level;
+        power += 5;
+    }
+    // Вывод информации об оружии
+    void showInfo() const {
+        cout << "Оружие: " << name << " | Мощность: " << power << " | Уровень: " << level << endl;
+    }
+};
+
+
+
+
+
+
+
+
+Game.cpp
+
+
+#include "GameH.cpp"
+#include <iostream>
+using namespace std;
+
+// Конструктор игры
+Game::Game()
+    // Добавление врагов
+    : player("Hero"), currentEnemyIndex(0) {
+    enemies.push_back(make_shared<Enemy>("Scout Drone", 30, 5));
+    enemies.push_back(make_shared<Enemy>("Assault Ship", 50, 10));
+    enemies.push_back(make_shared<Enemy>("War Cruiser", 100, 20));
+}
+
+// Запуск игры
+void Game::start() {
+    cout << "Добро пожаловать в игру космический бой!" << endl;
+    while (!isGameOver()) {
+        showStatus();
+        playerTurn(); // Ход игрока
+        if (!enemies[currentEnemyIndex]->isAlive()) {
+            ++currentEnemyIndex;  // Переход к следующему врагу
+        }
+        if (!isGameOver()) {
+            enemyTurn(); // Ход врага
+        }
+    }
+    endGame();
+}
+
+// Показать состояние игрока и врага
+void Game::showStatus() const {
+    cout <<"=================================================================";
+    cout << endl;
+    cout << "\nСтатус игрока:" << endl;
+    player.showStatus();
+    if (currentEnemyIndex < enemies.size()) {
+        cout << "\nСтатус врага:" << endl;
+        enemies[currentEnemyIndex]->showStatus();
+    }
+}
+
+// Ход игрока
+void Game::playerTurn() {
+    cout << "\nТвой ход!" << endl;
+    cout << "1. Атаковать  2. Зарядить энергию  3. Ремонт  4. Улучшить оружие" << endl;
+    int choice;
+    cin >> choice;
+    cout <<endl;
+
+    switch (choice) {
+        case 1:
+            player.attack(*enemies[currentEnemyIndex]);
+            break;
+        case 2:
+            player.defend();
+            break;
+        case 3:
+            player.heal();
+            break;
+        case 4:
+            player.upgradeWeapon();
+            break;
+        default:
+            cout << "Ход невозможен. Ход пропущен..." << endl;
+            break;
+    }
+}
+
+// Ход врага
+void Game::enemyTurn() {
+    if (currentEnemyIndex < enemies.size()) {
+        cout << "\nХод врага!" << endl;
+        enemies[currentEnemyIndex]->attack(player);
+    }
+}
+
+// Проверка, завершена ли игра
+bool Game::isGameOver() const {
+    return !player.isAlive() || currentEnemyIndex >= enemies.size();
+}
+
+// Завершение игры
+void Game::endGame() {
+    if (player.isAlive()) {
+        cout << "Поздравляем! Вы победили всех врагов!" << endl;
+    } else {
+        cout << "Игра окончена! Вы проиграли..." << endl;
+    }
+}
+
+
+
+
+
+
+
+
+EnemyH.cpp
+
+
+#include <string>
+using namespace std;
+
+class Player; // Объявление класса Player
+
+// Класс Enemy, представляющий врага
+class Enemy {
+private:
+    string name; // Имя врага
+    int health;  // Текущее здоровье
+    int damage; // Урон, который враг наносит
+
+public:
+    // Конструктор врага
+    Enemy(const string& name, int health, int damage);
+    // Действия врага
+    void attack(Player& player); // Атака игрока
+    void takeDamage(int damage);  // Получение урона
+    bool isAlive() const;  // Проверка, жив ли враг
+    void showStatus() const; // Вывод текущего состояния врага
+};
+
+
+
+
+
+
+
+
+PlayerH.cpp
+
+
+#include "WeaponH.cpp"
+#include <string>
+using namespace std;
+
+// Объявление класса Enemy
+class Enemy; 
+
+// Класс Player, представляющий игрока
+class Player {
+private:
+    string name; // Имя игрока
+    int health; // Текущее здоровье
+    int energy; // Текущая энергия
+    Weapon<int> weapon; // Оружие игрока
+
+public:
+    // Конструктор с параметрами по умолчанию
+    Player(const string& name = "Captain");
+
+    void attack(Enemy& enemy); // Атака врага
+    void defend(); // Защита (увеличение энергии)
+    void heal(); // Восстановление здоровья
+    void upgradeWeapon(); // Улучшение оружия
+    void takeDamage(int damage); // Получение урона
+    bool isAlive() const; // Проверка, жив ли игрок
+    void showStatus() const; // Вывод текущего состояния
+};
